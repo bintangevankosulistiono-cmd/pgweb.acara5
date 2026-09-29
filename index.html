@@ -5,58 +5,211 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Leaflet JS</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    <!-- Memuat file CSS Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <!-- Memuat file CSS Leaflet dari CDN (unpkg). CSS ini wajib agar tampilan peta, tombol zoom, popup, dan kontrol layer tampil dengan benar. -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
         integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <!-- FontAwesome & Leaflet.awesome-markers -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.css">
+    <!-- CSS sederhana agar elemen peta (#map) memenuhi seluruh layar browser (lebar dan tinggi 100%, tanpa margin). -->
     <style>
         html,
-        body,
-        #map {
+        body {
             width: 100%;
             height: 100%;
             margin: 0;
+            padding: 0;
+        }
+
+        #map {
+            width: 100%;
+            height: calc(100vh - 56px);
+            margin: 0;
+            padding: 0;
+        }
+
+        /* CSS untuk posisi kontrol peta (Scale Bar) di bawah tengah */
+        .leaflet-bottom.leaflet-center {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            pointer-events: none;
+        }
+
+        .leaflet-bottom.leaflet-center .leaflet-control {
+            pointer-events: auto;
+            margin-bottom: 10px;
         }
     </style>
 </head>
 
 <body>
+    <nav class="navbar navbar-expand-lg bg-body-tertiary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">Flores Timur</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+                aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="https://sv.ugm.ac.id/" target="_blank"><i
+                                class="bi bi-link-45deg"></i> SV UGM</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#aboutModal"><i
+                                class="bi bi-info-circle"></i> About</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    <!-- Div kosong dengan id "map" sebagai wadah tempat peta Leaflet akan ditampilkan. -->
     <div id="map"></div>
+
+    <!-- Modal About -->
+    <div class="modal fade" id="aboutModal" tabindex="-1" aria-labelledby="aboutModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h1 class="modal-title fs-5" id="aboutModalLabel">Data Diri</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <table class="table table-borderless mb-0">
+                        <tr>
+                            <th width="30%">Nama</th>
+                            <td>: Bintang Evanko Sulistiono</td>
+                        </tr>
+                        <tr>
+                            <th>NIM</th>
+                            <td>: 25/557075/SV/26095</td>
+                        </tr>
+                        <tr>
+                            <th>Kelas</th>
+                            <td>: PG WEB B</td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Feature Info -->
+    <div class="modal fade" id="featureModal" tabindex="-1" aria-labelledby="featureModalTitle" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h1 class="modal-title fs-5" id="featureModalTitle">Informasi</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="featureModalBody">
+                    <!-- Konten akan diisi melalui JavaScript -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
+        crossorigin="anonymous"></script>
+    <!-- Pustaka jQuery, dipakai di sini untuk memuat file GeoJSON lewat fungsi $.getJSON. -->
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <!-- Pustaka JavaScript Leaflet. Harus dimuat sebelum script utama di bawah agar objek "L" bisa dipakai. -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <!-- Leaflet.awesome-markers JS -->
+    <script
+        src="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.js"></script>
     <script>
         // Inisialisasi peta
+        // Membuat objek peta pada div "map". setView menentukan titik pusat tampilan awal
+        // (koordinat lintang -8.33, bujur 123.03, yaitu wilayah Flores Timur) dengan tingkat zoom 10.
         var map = L.map("map").setView([-8.3310027, 123.03025128], 10);
 
+        // Membuat pane khusus untuk mengatur urutan (z-index) layer agar tidak saling menutupi sembarangan
+        map.createPane('pane_penduduk');
+        map.getPane('pane_penduduk').style.zIndex = 401;
+
+        map.createPane('pane_jalan');
+        map.getPane('pane_jalan').style.zIndex = 402; // jalan selalu di atas penduduk
+
+        map.createPane('pane_toponimi');
+        map.getPane('pane_toponimi').style.zIndex = 403; // toponimi (marker) paling atas
+
         // Tile Layer Base Map
+        // Basemap berupa tile OpenStreetMap. {z}/{x}/{y} adalah pola alamat tile
+        // sesuai zoom dan posisi, sedangkan attribution menampilkan hak cipta OSM di pojok peta.
         var basemap = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
             attribution:
                 '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
         });
 
         // Menambahkan basemap ke dalam peta
+        // Basemap baru muncul di peta setelah ditambahkan dengan addTo(map).
         basemap.addTo(map);
 
         // GeoJSON Point Sarana Prasarana
+        // Layer 1, TOPONIMI (data titik/Point). L.geoJSON(null, {...}) membuat layer GeoJSON
+        // kosong lebih dulu beserta pengaturannya. Datanya diisi belakangan dari file lewat $.getJSON.
         var toponimi = L.geoJSON(null, {
+            pane: 'pane_toponimi',
             // Style
+            // pointToLayer mengubah setiap titik menjadi marker AwesomeMarkers
+            // berdasarkan atribut NAMA_UNSUR.
             pointToLayer: function (feature, latlng) {
+                var unsur = feature.properties.NAMA_UNSUR;
+                var iconType = 'info-circle';
+                var markerColor = 'blue';
+
+                if (unsur === 'Gunung') {
+                    iconType = 'mountain';
+                    markerColor = 'green';
+                } else if (unsur === 'Tanjung') {
+                    iconType = 'water';
+                    markerColor = 'blue';
+                } else if (unsur === 'Teluk') {
+                    iconType = 'ship';
+                    markerColor = 'cadetblue';
+                } else {
+                    iconType = 'map-marker-alt';
+                    markerColor = 'red';
+                }
+
                 return L.marker(latlng, {
-                    icon: L.icon({
-                        iconUrl: "images/home_marker (1).png", // icon marker
-                        iconSize: [48, 48], // ukuran icon
-                        iconAnchor: [24, 48], // posisi icon terhadap titik (point)
-                        popupAnchor: [0, -48], // posisi popup terhadap icon
-                        tooltipAnchor: [-16, -30], // posisi tooltip terhadap icon
-                    }),
+                    icon: L.AwesomeMarkers.icon({
+                        icon: iconType,
+                        markerColor: markerColor,
+                        prefix: 'fa'
+                    })
                 });
             },
             // onEachFeature
+            // Fungsi ini dijalankan untuk setiap objek pada data, dipakai untuk memasang popup
+            // (muncul saat diklik) dan tooltip (muncul saat kursor diarahkan) pada masing-masing titik.
             onEachFeature: function (feature, layer) {
                 // variable popup content
+                // Isi popup dirangkai dalam HTML: foto dari folder images (nama file diambil dari atribut image),
+                // nama toponimi, dan koordinat (index [1] = lintang, [0] = bujur).
                 var popup_content = "<br>" + "<img src='images/" + feature.properties.image + "' alt='' width='200'>" + "<br/>" + "Nama: " + feature.properties.TOPONIMI + "<br>" +
                     "Koordinat: " + feature.geometry.coordinates[1] + ", " + feature.geometry.coordinates[0];
 
 
+                // layer.on memasang event. click memasang popup, mouseover memasang tooltip berisi
+                // nama toponimi. direction "left" membuat tooltip muncul di sisi kiri ikon, sticky membuatnya mengikuti kursor.
                 layer.on({
                     click: function (e) {
                         toponimi.bindPopup(popup_content);
@@ -71,22 +224,44 @@
             },
 
         });
+        // $.getJSON membaca file toponimi.geojson (hasil ekspor dari QGIS), lalu addData mengisi
+        // layer dengan data tersebut dan addLayer menampilkannya di peta.
         $.getJSON("GeoJSON/toponimi.geojson", function (data) {
             toponimi.addData(data); // Menambahkan data ke dalam GeoJSON Point Sarana Prasarana
             map.addLayer(toponimi); // Menambahkan GeoJSON Point Sarana Prasarana ke dalam peta
         });
 
         // GeoJSON Polyline Jalan
+        // Layer 2, JALAN (data garis/LineString) dengan struktur yang sama seperti layer toponimi.
         var jalan = L.geoJSON(null, {
+            pane: 'pane_jalan',
             // Style
+            // Bentuk dan ketebalan garis jalan dibedakan berdasarkan jenis jalan (NAMA_UNSUR) sesuai standar
             style: function (feature) {
+                var fungsi = feature.properties.NAMA_UNSUR;
+                var weight = 2; // Default ketebalan
+                var dashArray = ''; // Default bentuk garis (solid)
+
+                if (fungsi === "Jalan Propinsi" || fungsi === "Jalan Provinsi") {
+                    weight = 4;
+                } else if (fungsi === "Jalan Kabupaten") {
+                    weight = 3;
+                    dashArray = '10, 10'; // Garis putus-putus panjang
+                } else if (fungsi === "Jalan Lain" || fungsi === "Jalan Lainnya") {
+                    weight = 2;
+                    dashArray = '4, 4'; // Garis putus-putus kecil-kecil
+                }
+
                 return {
                     color: "red",
                     opacity: 1,
-                    weight: 3,
+                    weight: weight,
+                    dashArray: dashArray
                 };
             },
             // onEachFeature
+            // Popup jalan menampilkan fungsi jalan (atribut NAMA_UNSUR) dan panjangnya dalam km
+            // (atribut panjang_km yang dihitung di QGIS). Tooltip menampilkan NAMA_UNSUR, dengan arah otomatis.
             onEachFeature: function (feature, layer) {
                 // variable popup content
                 var popup_content = "Fungsi: " + feature.properties.NAMA_UNSUR + "<br>" +
@@ -107,44 +282,53 @@
 
         });
 
+        // Memuat jalan.geojson lalu menampilkannya di peta.
         $.getJSON("GeoJSON/jalan.geojson", function (data) {
             jalan.addData(data); // Menambahkan data ke dalam GeoJSON Polyline Jalan
             map.addLayer(jalan); // Menambahkan GeoJSON Polyline Jalan ke dalam peta
         });
 
         // GeoJSON Polygon Jumlah Penduduk
+        // Layer 3, JUMLAH PENDUDUK per kecamatan (data poligon), berupa peta choropleth
+        // yang warnanya mengikuti besar jumlah penduduk.
         var jumlah_penduduk = L.geoJSON(null, {
+            pane: 'pane_penduduk',
             // Style
+            // Pewarnaan berdasarkan kelas atribut Penduduk, memakai tiga kelas:
+            // 13.000 ke bawah berwarna hijau (rendah), 13.001 sampai 26.000 oranye (sedang),
+            // di atas 26.000 merah (tinggi). Garis batas berwarna pink dan isi poligon agak transparan (0.7).
             style: function (feature) {
-	if (feature.properties.Penduduk <= 13000) {
-		return {
-			opacity: 1,
-			color: 'pink',
-			weight: 1.0,
-			fillOpacity: 0.7,
-			fillColor: '#00b050'
-		}
-	}
-	if (feature.properties.Penduduk > 13000 && feature.properties.Penduduk <= 26000) {
-		return {
-			opacity: 1,
-			color: 'pink',
-			weight: 1.0,
-			fillOpacity: 0.7,
-			fillColor: '#ff9900'
-		}
-	}
-	if (feature.properties.Penduduk > 26000) {
-		return {
-			opacity: 1,
-			color: 'pink',
-			weight: 1.0,
-			fillOpacity: 0.7,
-			fillColor: '#ff0000'
-		}
-	}
-},
+                if (feature.properties.Penduduk <= 13000) {
+                    return {
+                        opacity: 1,
+                        color: 'pink',
+                        weight: 1.0,
+                        fillOpacity: 0.7,
+                        fillColor: '#00b050'
+                    }
+                }
+                if (feature.properties.Penduduk > 13000 && feature.properties.Penduduk <= 26000) {
+                    return {
+                        opacity: 1,
+                        color: 'pink',
+                        weight: 1.0,
+                        fillOpacity: 0.7,
+                        fillColor: '#ff9900'
+                    }
+                }
+                if (feature.properties.Penduduk > 26000) {
+                    return {
+                        opacity: 1,
+                        color: 'pink',
+                        weight: 1.0,
+                        fillOpacity: 0.7,
+                        fillColor: '#ff0000'
+                    }
+                }
+            },
             // onEachFeature
+            // Popup kecamatan menampilkan nama kecamatan (WADMKC) dan jumlah penduduknya.
+            // Tooltip menampilkan nama kecamatan saat kursor diarahkan.
             onEachFeature: function (feature, layer) {
                 // variable popup content
                 var popup_content = "Kecamatan: " + feature.properties.WADMKC + "<br>" +
@@ -152,7 +336,15 @@
 
                 layer.on({
                     click: function (e) {
-                        jumlah_penduduk.bindPopup(popup_content);
+                        // jumlah_penduduk.bindPopup(popup_content); // Tidak menggunakan popup bawaan leaflet lagi
+
+                        // Mengubah konten modal sesuai dengan feature yang diklik
+                        document.getElementById("featureModalTitle").innerHTML = "Kecamatan " + feature.properties.WADMKC;
+                        document.getElementById("featureModalBody").innerHTML = "Jumlah Penduduk: <strong>" + feature.properties.Penduduk + "</strong> Jiwa";
+
+                        // Menampilkan modal Bootstrap
+                        var myModal = new bootstrap.Modal(document.getElementById('featureModal'));
+                        myModal.show();
                     },
                     mouseover: function (e) {
                         jumlah_penduduk.bindTooltip(feature.properties.WADMKC, {
@@ -164,6 +356,7 @@
             },
 
         });
+        // Memuat jumlah_penduduk.geojson (hasil join data Excel di QGIS) lalu menampilkannya di peta.
         $.getJSON("GeoJSON/jumlah_penduduk.geojson", function (data) {
             jumlah_penduduk.addData(data); // Menambahkan data ke dalam GeoJSON Polygon Jumlah Penduduk
             map.addLayer(jumlah_penduduk); // Menambahkan GeoJSON Polygon Jumlah Penduduk ke dalam peta
@@ -171,6 +364,9 @@
 
 
         // Control Layer
+        // Kontrol layer adalah tombol di pojok kanan atas peta untuk menyalakan/mematikan layer.
+        // baseMaps berisi pilihan basemap (satu aktif), overlayMaps berisi layer data
+        // (Toponimi, Jalan, Jumlah Penduduk) yang bisa dicentang bebas.
         var baseMaps = {
             "OpenStreetMap": basemap,
         };
@@ -181,11 +377,70 @@
             "Jumlah Penduduk": jumlah_penduduk,
         };
 
+        // Membuat kontrol layer dari dua daftar di atas lalu menambahkannya ke peta.
         var controllayer = L.control.layers(baseMaps, overlayMaps);
         controllayer.addTo(map);
 
+        // Legenda Peta (Toponimi, Jalan, Jumlah Penduduk)
+        var legend = L.control({ position: 'bottomleft' });
 
+        legend.onAdd = function (map) {
+            var div = L.DomUtil.create('div', 'info legend');
 
+            // Styling dasar untuk div legenda
+            div.style.backgroundColor = 'white';
+            div.style.padding = '10px';
+            div.style.borderRadius = '5px';
+            div.style.boxShadow = '0 0 15px rgba(0,0,0,0.2)';
+            div.style.lineHeight = '1.5';
+
+            // --- Bagian Toponimi ---
+            div.innerHTML += '<h6 style="margin-bottom: 5px; font-weight: bold;">Toponimi</h6>';
+            div.innerHTML += '<div style="margin-bottom: 5px;">' +
+                '<i class="fa fa-mountain" style="color: green; width: 18px; text-align: center; margin-right: 8px;"></i> Gunung</div>';
+            div.innerHTML += '<div style="margin-bottom: 5px;">' +
+                '<i class="fa fa-water" style="color: blue; width: 18px; text-align: center; margin-right: 8px;"></i> Tanjung</div>';
+            div.innerHTML += '<div style="margin-bottom: 5px;">' +
+                '<i class="fa fa-ship" style="color: cadetblue; width: 18px; text-align: center; margin-right: 8px;"></i> Teluk</div>';
+            div.innerHTML += '<div style="margin-bottom: 10px;">' +
+                '<i class="fa fa-map-marker-alt" style="color: red; width: 18px; text-align: center; margin-right: 8px;"></i> Lainnya</div>';
+
+            // --- Bagian Jalan ---
+            div.innerHTML += '<h6 style="margin-bottom: 5px; font-weight: bold; clear: both;">Jalan</h6>';
+            div.innerHTML += '<div style="margin-bottom: 5px; clear: both;">' +
+                '<i style="background: red; width: 18px; height: 4px; float: left; margin-right: 8px; margin-top: 7px;"></i> Jalan Provinsi</div>';
+            div.innerHTML += '<div style="margin-bottom: 5px; clear: both;">' +
+                '<i style="border-top: 3px dashed red; width: 18px; height: 0; float: left; margin-right: 8px; margin-top: 7px;"></i> Jalan Kabupaten</div>';
+            div.innerHTML += '<div style="margin-bottom: 10px; clear: both;">' +
+                '<i style="border-top: 2px dotted red; width: 18px; height: 0; float: left; margin-right: 8px; margin-top: 8px;"></i> Jalan Lain</div>';
+
+            // --- Bagian Jumlah Penduduk ---
+            div.innerHTML += '<h6 style="margin-bottom: 5px; font-weight: bold; clear: both;">Jumlah Penduduk</h6>';
+            var grades = [0, 13000, 26000];
+            var labels = ['Rendah (<= 13000)', 'Sedang (13001 - 26000)', 'Tinggi (> 26000)'];
+            var colors = ['#00b050', '#ff9900', '#ff0000'];
+
+            // Looping untuk membuat item warna dan labelnya
+            for (var i = 0; i < grades.length; i++) {
+                div.innerHTML +=
+                    '<i style="background:' + colors[i] + '; width: 18px; height: 18px; float: left; margin-right: 8px; opacity: 0.7; border: 1px solid #ccc;"></i> ' +
+                    labels[i] + '<br style="clear: both;">';
+            }
+
+            return div;
+        };
+
+        legend.addTo(map);
+
+        // Membuat wadah custom untuk posisi bottom-center di Leaflet
+        map._controlCorners['bottomcenter'] = L.DomUtil.create('div', 'leaflet-bottom leaflet-center', map._controlContainer);
+
+        // Scale Bar
+        L.control.scale({
+            position: 'bottomcenter',
+            metric: true,
+            imperial: false
+        }).addTo(map);
 
     </script>
 </body>
